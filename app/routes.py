@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 
 from app import crud
+from app import crud_google
 from app.supabase_client import supabase
 
 from app.schemas import (
@@ -74,9 +75,9 @@ def buscar_convite(
     response_model=MensagemResponse
 )
 def confirmar(
-    dados: ConfirmacaoRequest
+    dados: ConfirmacaoRequest,
 ):
-    evento_id = buscar_evento_id(supabase, dados.evento)
+    evento_id = crud.buscar_evento_id(supabase, dados.evento)
     valido = crud.validar_telefone(
         supabase,
         evento_id,
@@ -93,8 +94,8 @@ def confirmar(
 
     if crud.convite_ja_confirmado(
         supabase,
+        evento_id,
         dados.principal,
-        tag,
     ):
         raise HTTPException(
             status_code=409,
@@ -105,6 +106,7 @@ def confirmar(
     confirmacoes = [
         {
             "id": pessoa.id,
+            "nome": pessoa.nome,
             "confirmacao": pessoa.confirmacao
         }
         for pessoa in dados.pessoas
@@ -114,6 +116,12 @@ def confirmar(
     crud.salvar_confirmacoes(
         supabase,
         evento_id,
+        dados.principal,
+        confirmacoes,
+    )
+
+    crud_google.salvar_confirmacoes_google(
+        dados.sheet,
         dados.principal,
         confirmacoes,
     )

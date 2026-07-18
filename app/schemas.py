@@ -25,12 +25,15 @@ class ConviteResponse(BaseModel):
 
 class ConfirmacaoPessoa(BaseModel):
     id: int
+    nome: str
     confirmacao: bool
 
 
 class ConfirmacaoRequest(BaseModel):
     principal: str
     telefone_final: str
+    sheet: str
+    evento: str
     pessoas: List[ConfirmacaoPessoa]
 
 

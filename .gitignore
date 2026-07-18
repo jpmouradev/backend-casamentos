@@ -4,6 +4,3 @@ __pycache__/
 venv/
 .env
 .vscode/
-convidados.xlsx
-convidados.csv
-credentials.json
