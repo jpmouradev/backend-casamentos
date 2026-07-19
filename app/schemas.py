@@ -1,6 +1,4 @@
-from typing import List
-from typing import Optional
-
+from typing import List, Optional
 from pydantic import BaseModel
 
 
@@ -9,23 +7,20 @@ class PesquisaResponse(BaseModel):
 
 
 class PessoaResponse(BaseModel):
-    id: int
-    nome: str
-    telefone: str
-    principal: str
-    confirmacao: Optional[bool] = None
+    convidado: str
+    numero: str
+    nome_principal: str
+    confirmacao: str
 
 
 class ConviteResponse(BaseModel):
-    principal: str
-    telefone: str
     confirmado: bool
+    telefone: str
     pessoas: List[PessoaResponse]
 
 
 class ConfirmacaoPessoa(BaseModel):
-    id: int
-    nome: str
+    convidado: str
     confirmacao: bool
 
 
@@ -33,7 +28,6 @@ class ConfirmacaoRequest(BaseModel):
     principal: str
     telefone_final: str
     sheet: str
-    evento: str
     pessoas: List[ConfirmacaoPessoa]
 
 
@@ -42,8 +36,11 @@ class MensagemResponse(BaseModel):
     mensagem: str
 
 
-class EstatisticasResponse(BaseModel):
-    total: int
-    confirmados: int
-    recusados: int
-    pendentes: int
+class PresenteRequest(BaseModel):
+
+    presente: str
+    valor: float
+    nome: Optional[str] = None
+    mensagem: Optional[str] = None
+    tipo_pagamento: str
+    sheet: str

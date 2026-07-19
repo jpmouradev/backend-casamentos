@@ -8,8 +8,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 scopes = [
-'https://www.googleapis.com/auth/spreadsheets',
-'https://www.googleapis.com/auth/drive'
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive",
 ]
 
 creds_info = {
@@ -21,13 +21,12 @@ creds_info = {
     "client_id": os.getenv("GOOGLE_ACCOUNT_client_id"),
     "auth_uri": os.getenv("GOOGLE_ACCOUNT_auth_uri"),
     "token_uri": os.getenv("GOOGLE_ACCOUNT_token_uri"),
-    "auth_provider_x509_cert_url": os.getenv("GOOGLE_ACCOUNT_auth_provider_x509_cert_url"),
+    "auth_provider_x509_cert_url": os.getenv(
+        "GOOGLE_ACCOUNT_auth_provider_x509_cert_url"
+    ),
     "client_x509_cert_url": os.getenv("GOOGLE_ACCOUNT_client_x509_cert_url"),
     "universe_domain": os.getenv("GOOGLE_ACCOUNT_universe_domain"),
 }
-creds = Credentials.from_service_account_info(
-    creds_info,
-    scopes=scopes
-)
+creds = Credentials.from_service_account_info(creds_info, scopes=scopes)
 
 client_google = gspread.authorize(creds)
