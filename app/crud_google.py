@@ -9,14 +9,17 @@ class GoogleConvidados:
     def __init__(self, sheet_id: str):
 
         planilha = client_google.open_by_key(sheet_id)
+        self.worksheet_dados = planilha.worksheet("Dados")
         self.worksheet_convidados = planilha.worksheet("Convidados")
         self.worksheet_presentes = planilha.worksheet("Presentes")
         self.worksheet_presentes_recebidos = planilha.worksheet("Presentes Recebidos")
 
-        dados = self.worksheet_convidados.get_all_records()
+        dados_noivos = self.worksheet_dados.get_all_records()
+        dados_convidados = self.worksheet_convidados.get_all_records()
         presentes = self.worksheet_presentes.get_all_records()
-        self.df = pd.DataFrame(dados)
+        self.df = pd.DataFrame(dados_convidados)
         self.df_presentes = pd.DataFrame(presentes)
+        self.df_dados = pd.DataFrame(dados_noivos)
 
     def pesquisar(self, pesquisa: str):
 
@@ -97,3 +100,7 @@ class GoogleConvidados:
         self.worksheet_presentes_recebidos.append_row(
             linha, value_input_option="USER_ENTERED"
         )
+
+    def buscar_dados_noivos(self):
+
+        return self.df_dados.iloc[0].to_dict()

@@ -84,6 +84,14 @@ def presentes(sheet: str):
     return google.buscar_presentes()
 
 
+@router.get("/dados")
+def dados_noivos(sheet: str):
+
+    google = GoogleConvidados(sheet)
+
+    return google.buscar_dados_noivos()
+
+
 @router.post("/presente")
 def salvar_presente(dados: PresenteRequest):
 
