@@ -63,13 +63,19 @@ def configurar_dashboard(sheet: str):
 
     aba_principal = spreadsheet["sheets"][0]["properties"]["title"]
 
+    aba_convidados = next(
+        sheet["properties"]["title"]
+        for sheet in spreadsheet["sheets"]
+        if sheet["properties"]["title"] == "Convidados"
+    )
+
     values = [
         ["Status", "Quantidade"],
-        ["Sim", f"=COUNTIF('{aba_principal}'!D:D;\"Sim\")"],
-        ["Não", f"=COUNTIF('{aba_principal}'!D:D;\"Não\")"],
+        ["Sim", f"=COUNTIF('{aba_convidados}'!D:D;\"Sim\")"],
+        ["Não", f"=COUNTIF('{aba_convidados}'!D:D;\"Não\")"],
         [
             "Sem resposta",
-            f"=COUNTIFS('{aba_principal}'!A2:A;\"<>\";'{aba_principal}'!D2:D;\"\")",
+            f"=COUNTIFS('{aba_convidados}'!A2:A;\"<>\";'{aba_convidados}'!D2:D;\"\")",
         ],
     ]
 
