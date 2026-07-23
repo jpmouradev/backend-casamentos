@@ -44,3 +44,9 @@ class PresenteRequest(BaseModel):
     mensagem: Optional[str] = None
     tipo_pagamento: str
     sheet: str
+
+
+class CriarPagamentoRequest(BaseModel):
+    presente: str
+    valor: float
+    sheet: str

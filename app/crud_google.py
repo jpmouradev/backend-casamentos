@@ -2,6 +2,7 @@ import pandas as pd
 
 from app.google_sheets import client_google
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 
 class GoogleConvidados:
@@ -92,8 +93,7 @@ class GoogleConvidados:
     def salvar_presente(
         self, presente: str, valor: float, nome: str, mensagem: str, tipo_pagamento: str
     ):
-
-        data = datetime.now().strftime("%d/%m/%Y %H:%M")
+        data = datetime.now(ZoneInfo("America/Fortaleza")).strftime("%d/%m/%Y %H:%M")
 
         linha = [presente, valor, nome, mensagem, tipo_pagamento, data]
 
@@ -104,3 +104,14 @@ class GoogleConvidados:
     def buscar_dados_noivos(self):
 
         return self.df_dados.iloc[0].to_dict()
+
+    def buscar_mercado_pago_token(self):
+        if self.df_dados.empty:
+            raise ValueError("A aba Dados está vazia.")
+
+        token = self.df_dados.iloc[0].get("mercado_pago_token")
+
+        if not token or pd.isna(token):
+            raise ValueError("mercado_pago_token não encontrado na aba Dados.")
+
+        return str(token).strip()
