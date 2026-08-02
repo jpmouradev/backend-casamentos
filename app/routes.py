@@ -7,7 +7,9 @@ from app.crud_google import GoogleConvidados
 from app.schemas import (
     PesquisaResponse,
     ConviteResponse,
+    ConviteCriancasResponse,
     ConfirmacaoRequest,
+    ConfirmacaoCriancaRequest,
     MensagemResponse,
     PresenteRequest,
     CriarPagamentoRequest,
@@ -24,7 +26,10 @@ def health():
 @router.get("/pesquisar", response_model=list[PesquisaResponse])
 def pesquisar(nome: str, sheet: str):
 
-    google = GoogleConvidados(sheet)
+    google = GoogleConvidados(
+        sheet,
+        carregar_convidados=True,
+    )
 
     return google.pesquisar(nome)
 
@@ -32,7 +37,10 @@ def pesquisar(nome: str, sheet: str):
 @router.get("/convite", response_model=ConviteResponse)
 def buscar_convite(principal: str, sheet: str):
 
-    google = GoogleConvidados(sheet)
+    google = GoogleConvidados(
+        sheet,
+        carregar_convidados=True,
+    )
 
     pessoas = google.buscar_convite(principal)
 
@@ -52,12 +60,37 @@ def buscar_convite(principal: str, sheet: str):
     }
 
 
+@router.get("/convite_criancas_simples", response_model=ConviteCriancasResponse)
+def buscar_convite_criancas_simples(principal: str, sheet: str):
+
+    google = GoogleConvidados(
+        sheet,
+        carregar_convidados=True,
+    )
+
+    pessoas, criancas = google.buscar_convite_com_criancas(principal)
+
+    if not pessoas:
+        raise HTTPException(status_code=404, detail="Convite não encontrado.")
+
+    confirmado = google.convite_ja_confirmado(principal)
+
+    return {
+        "confirmado": confirmado,
+        "criancas": criancas,
+        "pessoas": pessoas,
+    }
+
+
 @router.post("/confirmar", response_model=MensagemResponse)
 def confirmar(
     dados: ConfirmacaoRequest,
 ):
 
-    google = GoogleConvidados(dados.sheet)
+    google = GoogleConvidados(
+        dados.sheet,
+        carregar_convidados=True,
+    )
 
     if not google.validar_telefone(
         dados.principal,
@@ -84,10 +117,41 @@ def confirmar(
     return {"sucesso": True, "mensagem": "Confirmação registrada com sucesso."}
 
 
+@router.post("/confirmar_com_criancas_simples", response_model=MensagemResponse)
+def confirmar_com_criancas_simples(
+    dados: ConfirmacaoCriancaRequest,
+):
+
+    google = GoogleConvidados(
+        dados.sheet,
+        carregar_convidados=True,
+    )
+
+    if google.convite_ja_confirmado(dados.principal):
+        raise HTTPException(status_code=409, detail="Este convite já foi confirmado.")
+
+    confirmacoes = [
+        {
+            "convidado": pessoa.convidado,
+            "confirmacao": pessoa.confirmacao,
+        }
+        for pessoa in dados.pessoas
+    ]
+
+    google.salvar_confirmacoes_com_criancas(
+        dados.principal, confirmacoes, dados.criancas
+    )
+
+    return {"sucesso": True, "mensagem": "Confirmação registrada com sucesso."}
+
+
 @router.get("/presentes")
 def presentes(sheet: str):
 
-    google = GoogleConvidados(sheet)
+    google = GoogleConvidados(
+        sheet,
+        carregar_presentes=True,
+    )
 
     return google.buscar_presentes()
 
@@ -95,7 +159,10 @@ def presentes(sheet: str):
 @router.get("/dados")
 def dados_noivos(sheet: str):
 
-    google = GoogleConvidados(sheet)
+    google = GoogleConvidados(
+        sheet,
+        carregar_dados=True,
+    )
 
     return google.buscar_dados_noivos()
 
@@ -103,7 +170,10 @@ def dados_noivos(sheet: str):
 @router.post("/presente")
 def salvar_presente(dados: PresenteRequest):
 
-    google = GoogleConvidados(dados.sheet)
+    google = GoogleConvidados(
+        dados.sheet,
+        carregar_presentes_recebidos=True,
+    )
 
     google.salvar_presente(
         presente=dados.presente,
@@ -120,7 +190,10 @@ def salvar_presente(dados: PresenteRequest):
 def criar_pagamento(dados: CriarPagamentoRequest):
 
     try:
-        google = GoogleConvidados(dados.sheet)
+        google = GoogleConvidados(
+            dados.sheet,
+            carregar_dados=True,
+        )
 
         access_token = google.buscar_mercado_pago_token()
 
