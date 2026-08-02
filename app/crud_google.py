@@ -1,26 +1,117 @@
 import pandas as pd
+import time
 
 from app.google_sheets import client_google
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+CACHE_TTL = 60  # segundos
+
+_planilha_cache = {}
+_worksheet_cache = {}
+_dataframe_cache = {}
+
 
 class GoogleConvidados:
 
-    def __init__(self, sheet_id: str):
+    def __init__(
+        self,
+        sheet_id: str,
+        carregar_dados=False,
+        carregar_convidados=False,
+        carregar_presentes=False,
+        carregar_presentes_recebidos=False,
+    ):
 
-        planilha = client_google.open_by_key(sheet_id)
-        self.worksheet_dados = planilha.worksheet("Dados")
-        self.worksheet_convidados = planilha.worksheet("Convidados")
-        self.worksheet_presentes = planilha.worksheet("Presentes")
-        self.worksheet_presentes_recebidos = planilha.worksheet("Presentes Recebidos")
+        self.sheet_id = sheet_id
 
-        dados_noivos = self.worksheet_dados.get_all_records()
-        dados_convidados = self.worksheet_convidados.get_all_records()
-        presentes = self.worksheet_presentes.get_all_records()
-        self.df = pd.DataFrame(dados_convidados)
-        self.df_presentes = pd.DataFrame(presentes)
-        self.df_dados = pd.DataFrame(dados_noivos)
+        self.planilha = self._obter_planilha()
+
+        if carregar_dados:
+            self.worksheet_dados = self._obter_worksheet("Dados")
+            self.df_dados = self._obter_dataframe("Dados")
+
+        if carregar_convidados:
+            self.worksheet_convidados = self._obter_worksheet("Convidados")
+            self.df = self._obter_dataframe("Convidados")
+
+        if carregar_presentes:
+            self.worksheet_presentes = self._obter_worksheet("Presentes")
+            self.df_presentes = self._obter_dataframe("Presentes")
+
+        if carregar_presentes_recebidos:
+            self.worksheet_presentes_recebidos = self._obter_worksheet(
+                "Presentes Recebidos"
+            )
+
+    def _obter_planilha(self):
+
+        cache = _planilha_cache.get(self.sheet_id)
+
+        if cache:
+            timestamp, planilha = cache
+
+            if time.time() - timestamp < CACHE_TTL:
+                return planilha
+
+        planilha = client_google.open_by_key(self.sheet_id)
+
+        _planilha_cache[self.sheet_id] = (
+            time.time(),
+            planilha,
+        )
+
+        return planilha
+
+    def _obter_worksheet(self, nome):
+
+        chave = (self.sheet_id, nome)
+
+        cache = _worksheet_cache.get(chave)
+
+        if cache:
+            timestamp, worksheet = cache
+
+            if time.time() - timestamp < CACHE_TTL:
+                return worksheet
+
+        worksheet = self.planilha.worksheet(nome)
+
+        _worksheet_cache[chave] = (
+            time.time(),
+            worksheet,
+        )
+
+        return worksheet
+
+    def _obter_dataframe(self, nome):
+
+        chave = (self.sheet_id, nome)
+
+        cache = _dataframe_cache.get(chave)
+
+        if cache:
+            timestamp, df = cache
+
+            if time.time() - timestamp < CACHE_TTL:
+                return df
+
+        worksheet = self._obter_worksheet(nome)
+
+        df = pd.DataFrame(worksheet.get_all_records())
+
+        _dataframe_cache[chave] = (
+            time.time(),
+            df,
+        )
+
+        return df
+
+    def _limpar_cache(self, nome_aba):
+
+        chave = (self.sheet_id, nome_aba)
+
+        _dataframe_cache.pop(chave, None)
 
     def pesquisar(self, pesquisa: str):
 
@@ -43,6 +134,31 @@ class GoogleConvidados:
         )
 
         return convidados
+
+    def buscar_convite_com_criancas(self, principal: str):
+
+        convidados = (
+            self.df[self.df["nome_principal"] == principal]
+            .sort_values("convidado")
+            .to_dict(orient="records")
+        )
+
+        if not convidados:
+            return {
+                "convidados": [],
+                "criancas": 0,
+            }
+
+        criancas = 0
+
+        for convidado in convidados:
+            valor = convidado.get("criancas")
+
+            if pd.notna(valor) and str(valor).strip() != "":
+                criancas = int(valor)
+                break
+
+        return convidados, criancas
 
     def validar_telefone(self, principal: str, final: str):
 
@@ -71,6 +187,8 @@ class GoogleConvidados:
 
         registros = self.df.to_dict(orient="records")
 
+        updates = []
+
         for item in confirmacoes:
 
             valor = "Sim" if item["confirmacao"] else "Não"
@@ -82,9 +200,73 @@ class GoogleConvidados:
                     and linha["convidado"] == item["convidado"]
                 ):
 
-                    self.worksheet_convidados.update_cell(indice, 4, valor)
+                    updates.append(
+                        {
+                            "range": f"C{indice}",
+                            "values": [[valor]],
+                        }
+                    )
 
                     break
+
+        if updates:
+            self.worksheet_convidados.batch_update(updates)
+
+        self._limpar_cache("Convidados")
+
+    def salvar_confirmacoes_com_criancas(
+        self,
+        principal: str,
+        confirmacoes: list,
+        confirmacao_crianca: int,
+    ):
+
+        registros = self.df.to_dict(orient="records")
+
+        updates = []
+
+        for item in confirmacoes:
+
+            valor = "Sim" if item["confirmacao"] else "Não"
+
+            for indice, linha in enumerate(registros, start=2):
+
+                if (
+                    linha["nome_principal"] == principal
+                    and linha["convidado"] == item["convidado"]
+                ):
+
+                    updates.append(
+                        {
+                            "range": f"C{indice}",
+                            "values": [[valor]],
+                        }
+                    )
+
+                    break
+
+        for indice, linha in enumerate(registros, start=2):
+
+            if linha["nome_principal"] != principal:
+                continue
+
+            criancas = linha.get("criancas")
+
+            if pd.notna(criancas) and str(criancas).strip():
+
+                updates.append(
+                    {
+                        "range": f"E{indice}",
+                        "values": [[confirmacao_crianca]],
+                    }
+                )
+
+                break
+
+        if updates:
+            self.worksheet_convidados.batch_update(updates)
+
+        self._limpar_cache("Convidados")
 
     def buscar_presentes(self):
 
@@ -100,6 +282,7 @@ class GoogleConvidados:
         self.worksheet_presentes_recebidos.append_row(
             linha, value_input_option="USER_ENTERED"
         )
+        self._limpar_cache("Presentes Recebidos")
 
     def buscar_dados_noivos(self):
 
