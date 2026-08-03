@@ -289,8 +289,6 @@ class GoogleConvidados:
 
     def buscar_presentes(self):
 
-        print(self.df_presentes.to_dict(orient="records"))
-
         return self.df_presentes.to_dict(orient="records")
 
     def salvar_presente(

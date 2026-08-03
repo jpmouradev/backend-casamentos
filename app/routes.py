@@ -216,9 +216,6 @@ def criar_pagamento(dados: CriarPagamentoRequest):
 
         preference_response = sdk.preference().create(preference_data)
 
-        print("Resposta Mercado Pago:")
-        print(preference_response)
-
         if preference_response.get("status") not in (200, 201):
             raise HTTPException(
                 status_code=500, detail="Erro ao criar pagamento no Mercado Pago."
@@ -230,7 +227,4 @@ def criar_pagamento(dados: CriarPagamentoRequest):
         raise
 
     except Exception as e:
-        print("ERRO AO CRIAR PAGAMENTO:")
-        print(repr(e))
-
         raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
