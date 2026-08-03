@@ -4,6 +4,7 @@ import time
 from app.google_sheets import client_google
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from decimal import Decimal
 
 CACHE_TTL = 60  # segundos
 
@@ -38,6 +39,14 @@ class GoogleConvidados:
         if carregar_presentes:
             self.worksheet_presentes = self._obter_worksheet("Presentes")
             self.df_presentes = self._obter_dataframe("Presentes")
+            self.df_presentes["preco"] = (
+                self.df_presentes["preco"]
+                .fillna("0")
+                .astype(str)
+                .str.strip()
+                .str.replace(",", ".", regex=False)
+                .apply(Decimal)
+            )
 
         if carregar_presentes_recebidos:
             self.worksheet_presentes_recebidos = self._obter_worksheet(
@@ -98,7 +107,17 @@ class GoogleConvidados:
 
         worksheet = self._obter_worksheet(nome)
 
-        df = pd.DataFrame(worksheet.get_all_records())
+        valores = worksheet.get_all_values()
+
+        cabecalho = valores[0]
+        linhas = valores[1:]
+
+        df = pd.DataFrame(linhas, columns=cabecalho)
+
+        if nome == "Presentes":
+            df["preco"] = (
+                df["preco"].str.strip().str.replace(",", ".", regex=False).astype(float)
+            )
 
         _dataframe_cache[chave] = (
             time.time(),
@@ -269,6 +288,8 @@ class GoogleConvidados:
         self._limpar_cache("Convidados")
 
     def buscar_presentes(self):
+
+        print(self.df_presentes.to_dict(orient="records"))
 
         return self.df_presentes.to_dict(orient="records")
 
