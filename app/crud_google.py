@@ -142,10 +142,21 @@ class GoogleConvidados:
 
         pesquisa = pesquisa.lower().strip()
 
-        df = self.df[self.df["convidado"].str.lower().str.contains(pesquisa, na=False)]
+        filtro = self.df["convidado"].fillna("").str.lower().str.contains(
+            pesquisa, regex=False
+        ) | self.df["nome_principal"].fillna("").str.lower().str.contains(
+            pesquisa, regex=False
+        )
+
+        df = self.df[filtro]
 
         principals = (
-            df["nome_principal"].dropna().drop_duplicates().sort_values().tolist()
+            df["nome_principal"]
+            .fillna("")
+            .loc[lambda s: s.str.strip() != ""]
+            .drop_duplicates()
+            .sort_values()
+            .tolist()
         )
 
         return [{"principal": principal} for principal in principals]

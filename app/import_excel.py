@@ -11,7 +11,7 @@ url = os.getenv("SUPABASE_URL")
 key = os.getenv("SUPABASE_KEY")
 
 supabase = create_client(url, key)
-sheet_id = "1hcfcJmJ_tRHmUfYitXX5ANtx3k0GHSf-ycOP8gL6j94"
+sheet_id = os.getenv("SHEET_ID")
 
 complete_sheet = client_google.open_by_key(sheet_id)
 # sheet = complete_sheet.get_worksheet(0)

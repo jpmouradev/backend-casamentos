@@ -7,9 +7,11 @@ from app.crud_google import GoogleConvidados
 from app.schemas import (
     PesquisaResponse,
     ConviteResponse,
+    ConviteSemNumeroResponse,
     ConviteCriancasResponse,
     ConfirmacaoRequest,
     ConfirmacaoCriancaRequest,
+    ConfirmacaoSemTelefoneRequest,
     MensagemResponse,
     PresenteRequest,
     CriarPagamentoRequest,
@@ -60,6 +62,27 @@ def buscar_convite(principal: str, sheet: str):
     }
 
 
+@router.get("/convite_sem_numero", response_model=ConviteSemNumeroResponse)
+def buscar_convite_sem_numero(principal: str, sheet: str):
+
+    google = GoogleConvidados(
+        sheet,
+        carregar_convidados=True,
+    )
+
+    pessoas = google.buscar_convite(principal)
+
+    if not pessoas:
+        raise HTTPException(status_code=404, detail="Convite não encontrado.")
+
+    confirmado = google.convite_ja_confirmado(principal)
+
+    return {
+        "confirmado": confirmado,
+        "pessoas": pessoas,
+    }
+
+
 @router.get("/convite_criancas_simples", response_model=ConviteCriancasResponse)
 def buscar_convite_criancas_simples(principal: str, sheet: str):
 
@@ -97,6 +120,35 @@ def confirmar(
         dados.telefone_final,
     ):
         raise HTTPException(status_code=401, detail="Telefone inválido.")
+
+    if google.convite_ja_confirmado(dados.principal):
+        raise HTTPException(status_code=409, detail="Este convite já foi confirmado.")
+
+    confirmacoes = [
+        {
+            "convidado": pessoa.convidado,
+            "confirmacao": pessoa.confirmacao,
+        }
+        for pessoa in dados.pessoas
+    ]
+
+    google.salvar_confirmacoes(
+        dados.principal,
+        confirmacoes,
+    )
+
+    return {"sucesso": True, "mensagem": "Confirmação registrada com sucesso."}
+
+
+@router.post("/confirmar_sem_telefone", response_model=MensagemResponse)
+def confirmar_sem_telefone(
+    dados: ConfirmacaoSemTelefoneRequest,
+):
+
+    google = GoogleConvidados(
+        dados.sheet,
+        carregar_convidados=True,
+    )
 
     if google.convite_ja_confirmado(dados.principal):
         raise HTTPException(status_code=409, detail="Este convite já foi confirmado.")
