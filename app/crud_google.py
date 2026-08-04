@@ -116,7 +116,13 @@ class GoogleConvidados:
 
         if nome == "Presentes":
             df["preco"] = (
-                df["preco"].str.strip().str.replace(",", ".", regex=False).astype(float)
+                df["preco"]
+                .fillna("0")
+                .astype(str)
+                .str.strip()
+                .replace("", "0")
+                .str.replace(",", ".", regex=False)
+                .astype(float)
             )
 
         _dataframe_cache[chave] = (
