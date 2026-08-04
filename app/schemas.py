@@ -13,6 +13,12 @@ class PessoaResponse(BaseModel):
     confirmacao: str
 
 
+class PessoaSemNumeroResponse(BaseModel):
+    convidado: str
+    nome_principal: str
+    confirmacao: str
+
+
 class PessoaSimplesResponse(BaseModel):
     convidado: str
     nome_principal: str
@@ -23,6 +29,11 @@ class ConviteResponse(BaseModel):
     confirmado: bool
     telefone: str
     pessoas: List[PessoaResponse]
+
+
+class ConviteSemNumeroResponse(BaseModel):
+    confirmado: bool
+    pessoas: List[PessoaSemNumeroResponse]
 
 
 class ConviteCriancasResponse(BaseModel):
@@ -39,6 +50,12 @@ class ConfirmacaoPessoa(BaseModel):
 class ConfirmacaoRequest(BaseModel):
     principal: str
     telefone_final: str
+    sheet: str
+    pessoas: List[ConfirmacaoPessoa]
+
+
+class ConfirmacaoSemTelefoneRequest(BaseModel):
+    principal: str
     sheet: str
     pessoas: List[ConfirmacaoPessoa]
 
